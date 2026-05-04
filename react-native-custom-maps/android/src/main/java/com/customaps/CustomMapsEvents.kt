@@ -68,11 +68,26 @@ internal object CustomMapsEvents {
   ) {
     val surfaceId = UIManagerHelper.getSurfaceId(context)
     val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(context, viewId)
-    dispatcher?.dispatchEvent(object : Event<Event<*>>(surfaceId, viewId) {
-      override fun getEventName(): String = eventName
-      override fun getEventData(): WritableMap = payload
-    })
+    dispatcher?.dispatchEvent(CustomMapsDirectEvent(surfaceId, viewId, eventName, payload))
   }
+}
+
+/**
+ * Concrete, named Event subclass.
+ *
+ * Kotlin's `Event<T : Event<T>>` uses F-bounded polymorphism, which means
+ * `object : Event<Event<*>>(...)` (an anonymous class parameterized by a
+ * star-projected Event) does NOT satisfy the bound and fails to compile.
+ * A concrete self-referencing subclass is the idiomatic fix.
+ */
+private class CustomMapsDirectEvent(
+  surfaceId: Int,
+  viewId: Int,
+  private val name: String,
+  private val data: WritableMap,
+) : Event<CustomMapsDirectEvent>(surfaceId, viewId) {
+  override fun getEventName(): String = name
+  override fun getEventData(): WritableMap = data
 }
 
 /**
