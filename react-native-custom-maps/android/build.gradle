@@ -1,0 +1,93 @@
+// react-native-custom-maps/android/build.gradle
+//
+// Provider selection at build time. The consumer app sets ONE of these in
+// its android/gradle.properties (or via -P flag at build):
+//
+//   customMapsProvider=google   # Google Maps SDK
+//   customMapsProvider=osm      # OpenStreetMap (osmdroid)
+//
+// Defaults to "osm" because it requires no API key.
+
+buildscript {
+  ext.safeExtGet = { prop, fallback ->
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+  }
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath("com.android.tools.build:gradle:8.6.0")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${safeExtGet('kotlinVersion', '2.0.21')}")
+  }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'com.facebook.react'
+
+def resolveProvider() {
+  def p = project.findProperty('customMapsProvider') ?: 'osm'
+  return p.toString().toLowerCase()
+}
+def selectedProvider = resolveProvider()
+logger.lifecycle("react-native-custom-maps: building with provider='${selectedProvider}'")
+
+android {
+  namespace "com.customaps"
+  compileSdk safeExtGet('compileSdkVersion', 34)
+
+  defaultConfig {
+    minSdk safeExtGet('minSdkVersion', 24)
+    targetSdk safeExtGet('targetSdkVersion', 34)
+    buildConfigField "String", "PROVIDER", "\"${selectedProvider}\""
+  }
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = '17'
+  }
+
+  // Provider-specific source sets — only one is added based on the flag.
+  sourceSets {
+    main {
+      if (selectedProvider == 'google') {
+        java.srcDirs += ['src/google/java']
+      } else {
+        java.srcDirs += ['src/osm/java']
+      }
+    }
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:${safeExtGet('kotlinVersion', '2.0.21')}"
+
+  if (selectedProvider == 'google') {
+    implementation 'com.google.android.gms:play-services-maps:19.0.0'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'com.google.maps.android:android-maps-utils:3.8.2'
+  } else {
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+  }
+}
+
+react {
+  jsRootDir = file("../src/")
+  libraryName = "RNCustomMapsSpec"
+  codegenJavaPackageName = "com.customaps"
+}

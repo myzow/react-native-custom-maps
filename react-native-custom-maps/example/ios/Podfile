@@ -1,0 +1,20 @@
+# Example Podfile for the demo app.
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+
+platform :ios, '13.4'
+
+# Switch the iOS provider before `pod install`:
+#   ENV['RNC_CUSTOM_MAPS_PROVIDER'] = 'mapkit'  # or 'google'
+#
+# Default = mapkit (no API key required).
+
+target 'MapsExample' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,
+    :fabric_enabled => true,
+    :new_arch_enabled => true,
+  )
+end
